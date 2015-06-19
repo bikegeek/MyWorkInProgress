@@ -1,4 +1,4 @@
-proj2 <- function(){
+dt <- function(){
       library(dplyr)
       library(reshape2)
       library(ggplot2)
@@ -7,8 +7,8 @@ proj2 <- function(){
 
       #unzip and open the csv file
       #data.file <- bzfile("repdata_data_StormData.csv.bz")
-      data.file <- "repdata_data_StormData.csv"
-      #data.file <- "subdata.csv"
+      #data.file <- "repdata_data_StormData.csv"
+      data.file <- "subdata.csv"
       raw.data <- read.csv(data.file, sep=",", header=TRUE, stringsAsFactors=FALSE)
 
       #Replace any NAs with 0
@@ -22,8 +22,6 @@ proj2 <- function(){
       #look at the trends through the years.
 
       #Subset on columns
-      # base R
-      # selected.data <- subset(raw.data, select=c(BGN_DATE,STATE,EVTYPE,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP,FATALITIES,INJURIES))
 
       # dplyr
       selected.data <- select(raw.data, BGN_DATE,STATE,EVTYPE,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP,FATALITIES,INJURIES)
@@ -35,8 +33,6 @@ proj2 <- function(){
 
       #Now subset the selected.data dataframe to include only the 50 US states.
 
-      # base R
-      #us.only <- subset(selected.data, selected.data$STATE %in% us)
 
       # dplyr
       us.only <- filter(selected.data, STATE %in% us)
@@ -45,8 +41,6 @@ proj2 <- function(){
       datetimes <- strptime(us.only$BGN_DATE, "%m/%d/%Y %H:%M:%S")
       years <- format(datetimes,format="%Y")
       years <- as.numeric(years)
-      # base R
-      #us.only$Years <- cbind(c(years))
 
       # dplyr
       us.only <- mutate(us.only, YEAR=c(years))
@@ -123,17 +117,10 @@ proj2 <- function(){
       #data frame
       crop.mult <- as.numeric(crop.multiplier)
 
-      # base R
-      #us.only$CROPMULT <- cbind(c(crop.mult))
-
-      # dplyr
 
       #Make the prop.multiplier a numeric vector before we add it to the us.only
       #data frame
       prop.mult <- as.numeric(prop.multiplier)
-
-      # base R
-      #us.only$PROPMULT <- cbind(c(prop.mult))
 
       # dplyr
       us.only <- mutate(us.only, PROPMULT=c(prop.mult))
@@ -150,21 +137,24 @@ proj2 <- function(){
       #In other words, over the entire data set (all years available and the 50
       #U.S. states only), what are the average/mean number
       #of fatalities and what are the mean number of injuries for each
-      #event type?  Generate a plot of the num
+      #event type?
 
       # First, melt the data, then cast so that we can readily calculate the
       # average number of Fatalities and the average number of Injuries for
-      # each event type.
-
-      melted.us.health <- melt(us.health, id=c("EVTYPE"),measure=c("FATALITIES","INJURIES"))
+      # each event type. Subset data so we don't get overwhelmed with too
+      # many event types, therefore, only include the events where the
+      us.health.sub <- subset(us.health, FATALITIES + INJURIES > 1)
+      melted.us.health <- melt(us.health.sub, id=c("EVTYPE"),measure=c("FATALITIES","INJURIES"))
       mean.us.health <- dcast(melted.us.health,EVTYPE~variable,mean)
+      subset.health <- subset(mean.us.health,FATALITIES + INJURIES>1)
       mean.us.health.long <- melt(mean.us.health)
       png(file="./health_impact.png",width=480, height=480)
       p1<-ggplot(mean.us.health.long, aes(EVTYPE,value,fill=variable))+
             geom_bar(stat="identity",position="dodge")+
             theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
             xlab("Event Type") + ylab("Number of people") +
-            ggtitle("Health impacts of U.S. Weather Events averaged from 1950-2011")
+            ggtitle("Health impacts of U.S. Weather Events averaged from 1950-2011")+
+            coord_flip()
       print(p1)
       dev.off()
 
@@ -174,16 +164,20 @@ proj2 <- function(){
     # First, melt the data, then cast so that we can readily calculate the
     # average number of Fatalities and the average number of Injuries for
     # each event type.
-
-    melted.us.damage <- melt(us.damages, id=c("EVTYPE"),measure=c("PROPCOST","CROPCOST"))
+    # Omit any cases where there is minimal property and crop damage.
+    us.damages.sub <- subset(us.damages, PROPCOST + CROPCOST >1)
+    melted.us.damage <- melt(us.damages.sub, id=c("EVTYPE"),measure=c("PROPCOST","CROPCOST"))
     mean.us.damage <- dcast(melted.us.damage,EVTYPE~variable,mean)
-    mean.us.damage.long <- melt(mean.us.damage)
+    #Subset the mean damage data to ignore averages that are less than $1
+    subset.damage <- subset(mean.us.damage, PROPCOST + CROPCOST > 1)
+    mean.us.damage.long <- melt(subset.damage)
     png(file="./economic_impact.png",width=480,height=480)
     p2 <-ggplot(mean.us.damage.long, aes(EVTYPE,value,fill=variable))+
           geom_bar(stat="identity",position="dodge")+
           theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
           xlab("Event Type") + ylab("Cost in U.S. Dollars") +
-          ggtitle("Economic Impact of U.S. Weather Events averaged from 1950-2011")
+          ggtitle("Economic Impact of U.S. Weather Events averaged from 1950-2011")+
+          coord_flip()
     print(p2)
     dev.off()
 
