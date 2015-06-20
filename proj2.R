@@ -1,4 +1,4 @@
-dt <- function(){
+proj2 <- function(){
       library(dplyr)
       library(reshape2)
       library(ggplot2)
@@ -7,7 +7,7 @@ dt <- function(){
 
       #unzip and open the csv file
       #data.file <- bzfile("repdata_data_StormData.csv.bz")
-      #data.file <- "repdata_data_StormData.csv"
+     # data.file <- "repdata_data_StormData.csv"
       data.file <- "subdata.csv"
       raw.data <- read.csv(data.file, sep=",", header=TRUE, stringsAsFactors=FALSE)
 
@@ -38,6 +38,8 @@ dt <- function(){
       us.only <- filter(selected.data, STATE %in% us)
 
       #Convert the BGN_DATE string to a Date type and obtain the year.
+      # We may want to use the year if we plan on doing an analysis that
+      # looks at the data over each year.
       datetimes <- strptime(us.only$BGN_DATE, "%m/%d/%Y %H:%M:%S")
       years <- format(datetimes,format="%Y")
       years <- as.numeric(years)
@@ -122,15 +124,29 @@ dt <- function(){
       #data frame
       prop.mult <- as.numeric(prop.multiplier)
 
-      # dplyr
+
+
+      # use dplyr to create new columns for the calculated cost of damage.
       us.only <- mutate(us.only, PROPMULT=c(prop.mult))
       us.only <- mutate(us.only, PROPCOST=PROPDMG*PROPMULT)
       us.only <- mutate(us.only, CROPMULT=c(crop.mult))
       us.only <- mutate(us.only, CROPCOST=CROPDMG*CROPMULT)
 
+      #Calculte the totals for property damage and health impacts. These
+      #will be used to subset the data further.
+      us.only <- mutate(us.only, TOTALCOST=CROPCOST+PROPCOST)
+      us.only <- mutate(us.only, TOTALHEALTH=FATALITIES+INJURIES)
+      #total.cost <- sum(us.only$PROPCOST,us.only$CROPCOST)
+      #us.only <- mutate(us.only, TOTALCOST = c(total.cost))
+     # total.health <- sum(us.only$FATALITIES,us.only$INJURIES)
+     # us.only <- mutate(us.only, TOATLHEALTH = c(total.health))
+
+      #Create new dataframes for damages and health based on the relevant
+      #data.
       us.data <- select(us.only, YEAR, EVTYPE, PROPCOST, CROPCOST, FATALITIES,INJURIES )
-      us.damages <- select(us.only, EVTYPE, PROPCOST,CROPCOST)
-      us.health <- select(us.only,  EVTYPE, FATALITIES, INJURIES)
+      us.damages <- select(us.only, EVTYPE, PROPCOST,CROPCOST,TOTALCOST)
+      us.health <- select(us.only,  EVTYPE, FATALITIES, INJURIES,TOTALHEALTH)
+
 
       #Now generate plots to answer question1: Which event type(s) are the most
       #harmful to U.S. human health?
@@ -143,11 +159,18 @@ dt <- function(){
       # average number of Fatalities and the average number of Injuries for
       # each event type. Subset data so we don't get overwhelmed with too
       # many event types, therefore, only include the events where the
-      us.health.sub <- subset(us.health, FATALITIES + INJURIES > 1)
+      # total health impacts are above or equal to the mean.
+
+      #Calculate the mean value for total health impact (sum of the mean
+      #injuries and mean fatalities) to be used as subetting criteria.
+      mean.health.total <- mean(us.health$TOTALHEALTH, na.rm=TRUE)
+      us.health.sub <- subset(us.health, TOTALHEALTH >= mean.health.total)
+
       melted.us.health <- melt(us.health.sub, id=c("EVTYPE"),measure=c("FATALITIES","INJURIES"))
       mean.us.health <- dcast(melted.us.health,EVTYPE~variable,mean)
-      subset.health <- subset(mean.us.health,FATALITIES + INJURIES>1)
       mean.us.health.long <- melt(mean.us.health)
+
+      #Generate the bar plot of the fatalities and injuries based on event.
       png(file="./health_impact.png",width=480, height=480)
       p1<-ggplot(mean.us.health.long, aes(EVTYPE,value,fill=variable))+
             geom_bar(stat="identity",position="dodge")+
@@ -164,13 +187,23 @@ dt <- function(){
     # First, melt the data, then cast so that we can readily calculate the
     # average number of Fatalities and the average number of Injuries for
     # each event type.
-    # Omit any cases where there is minimal property and crop damage.
-    us.damages.sub <- subset(us.damages, PROPCOST + CROPCOST >1)
+
+    #Calculate the mean cost of total damage (property and crop), and use this
+    #as a criteria for subsetting the data.
+    mean.property <- mean(us.damages$TOTALCOST,na.rm=TRUE)
+    print(cat("Mean property damage: ", mean.property))
+    us.damages.sub <- subset(us.damages, TOTALCOST >= mean.property)
     melted.us.damage <- melt(us.damages.sub, id=c("EVTYPE"),measure=c("PROPCOST","CROPCOST"))
     mean.us.damage <- dcast(melted.us.damage,EVTYPE~variable,mean)
-    #Subset the mean damage data to ignore averages that are less than $1
-    subset.damage <- subset(mean.us.damage, PROPCOST + CROPCOST > 1)
-    mean.us.damage.long <- melt(subset.damage)
+    mean.us.damage.long <- melt(mean.us.damage)
+
+    #Format the property cost and crop cost values so ggplot2 doesn't
+    #generate warnings about changing widths for bar size.
+    formatted.propcost <- format(mean.us.damage.long$PROPCOST, digits=2)
+    formatted.cropcost <- format(mean.us.damage.long$CROPCOST, digits=2)
+    print(head(mean.us.damage,10))
+
+    #Generate the bar plot of property cost and crop cost due to event.
     png(file="./economic_impact.png",width=480,height=480)
     p2 <-ggplot(mean.us.damage.long, aes(EVTYPE,value,fill=variable))+
           geom_bar(stat="identity",position="dodge")+
@@ -180,5 +213,15 @@ dt <- function(){
           coord_flip()
     print(p2)
     dev.off()
+
+    #Summary of the max average property damage, crop damage, number of fatalities, and number of
+    #injuries
+    max.property <- max(mean.us.damage$PROPCOST)
+    max.crop <- max(mean.us.damage$CROPCOST)
+    max.fatalities <- max(mean.us.health$FATALITIES)
+    max.injuries <- max(mean.us.health$INJURIES)
+    print(cat("Max mean property damage: ", max.property, " Max mean crop damage: ", max.crop,
+              " Max average number fatalities: ", max.fatalities, " Max average number of injuries: ",
+               max.injuries))
 
 }
