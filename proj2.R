@@ -158,13 +158,11 @@ proj2 <- function(){
       # First, melt the data, then cast so that we can readily calculate the
       # average number of Fatalities and the average number of Injuries for
       # each event type. Subset data so we don't get overwhelmed with too
-      # many event types, therefore, only include the events where the
-      # total health impacts are above or equal to the mean.
-
-      #Calculate the mean value for total health impact (sum of the mean
-      #injuries and mean fatalities) to be used as subetting criteria.
-      mean.health.total <- mean(us.health$TOTALHEALTH, na.rm=TRUE)
-      us.health.sub <- subset(us.health, TOTALHEALTH >= mean.health.total)
+      # many event types, therefore, only include the top 20 events.
+      sorted.health <- sort(us.health$TOTALHEALTH,decreasing=TRUE)
+      print(head(sorted.health,20))
+      top20.health <- sorted.health[20]
+      us.health.sub <- subset(us.health, TOTALHEALTH >= top20.health)
 
       melted.us.health <- melt(us.health.sub, id=c("EVTYPE"),measure=c("FATALITIES","INJURIES"))
       mean.us.health <- dcast(melted.us.health,EVTYPE~variable,mean)
@@ -188,11 +186,12 @@ proj2 <- function(){
     # average number of Fatalities and the average number of Injuries for
     # each event type.
 
-    #Calculate the mean cost of total damage (property and crop), and use this
+    #Sort the damage costs and use the top 20
     #as a criteria for subsetting the data.
-    mean.property <- mean(us.damages$TOTALCOST,na.rm=TRUE)
-    print(cat("Mean property damage: ", mean.property))
-    us.damages.sub <- subset(us.damages, TOTALCOST >= mean.property)
+    sorted.damages <- sort(us.damages$TOTALCOST,decreasing=TRUE)
+    top20.damages <- sorted.damages[20]
+    us.damages.sub <- subset(us.damages, TOTALCOST >= top20.damages)
+
     melted.us.damage <- melt(us.damages.sub, id=c("EVTYPE"),measure=c("PROPCOST","CROPCOST"))
     mean.us.damage <- dcast(melted.us.damage,EVTYPE~variable,mean)
     mean.us.damage.long <- melt(mean.us.damage)
