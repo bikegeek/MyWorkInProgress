@@ -300,7 +300,7 @@ to subset the data.
 
 **Maximum property damage (in U.S. Dollars):** `r max.property.cost` **caused by ** `r max.property.event`  
 **Maximum crop damage (in U.S. Dollars):** `r max.crop.cost` **caused by ** `r max.crop.event`  
-**Maximum number of fatalities:** `r max.fatalities.number` **caused by ** `r max.fatalities.event`
+**Maximum number of fatalities:** `r max.fatalities.number` **caused by ** `r max.fatalities.event`  
 **Maximum number of injuries:** `r max.injuries.number` **caused by ** `r max.injuries.event`  
 
 The plot of economic impacts shows that floods, storm surge, hurricane/typhoon, winter storms, and tropical storms accounted for the majority of property damage.  Floods caused the most property damage, followed by storm surge.  River flooding and ice storms were the two events resulting in the most crop damage.
