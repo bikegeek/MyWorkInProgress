@@ -7,8 +7,8 @@ proj2 <- function(){
 
       #unzip and open the csv file
       #data.file <- bzfile("repdata_data_StormData.csv.bz")
-     # data.file <- "repdata_data_StormData.csv"
-      data.file <- "subdata.csv"
+      data.file <- "repdata_data_StormData.csv"
+     # data.file <- "subdata.csv"
       raw.data <- read.csv(data.file, sep=",", header=TRUE, stringsAsFactors=FALSE)
 
       #Replace any NAs with 0
@@ -21,20 +21,13 @@ proj2 <- function(){
       #and we will use the begin date to get the year information, so we can
       #look at the trends through the years.
 
-      #Subset on columns
-
-      # dplyr
+      # use dplyr to select the relevant columns
       selected.data <- select(raw.data, BGN_DATE,STATE,EVTYPE,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP,FATALITIES,INJURIES)
 
       #Subset for the 50 states. Get a list of the unique states, the first 50
       #are the ones we want.
       states <- unique(selected.data$STATE)
       us <- head(states,50)
-
-      #Now subset the selected.data dataframe to include only the 50 US states.
-
-
-      # dplyr
       us.only <- filter(selected.data, STATE %in% us)
 
       #Convert the BGN_DATE string to a Date type and obtain the year.
@@ -43,8 +36,6 @@ proj2 <- function(){
       datetimes <- strptime(us.only$BGN_DATE, "%m/%d/%Y %H:%M:%S")
       years <- format(datetimes,format="%Y")
       years <- as.numeric(years)
-
-      # dplyr
       us.only <- mutate(us.only, YEAR=c(years))
 
       #Convert the FATALITIES and INJURIES to numeric types so we can
@@ -66,7 +57,7 @@ proj2 <- function(){
       #is set to 1.  Create a vector of these values, append them to the
       #us.only dataframe and then multiply the PROPDMG/CROPDMG to the corresponding
       #PROPDMGEXP/CROPDMGEXP column to obtain the total cost in U.S. dollars.
-      #Save these results to a new row in us.only, named PROPCOST and CROPCOST,
+      #Save these results to a new column in us.only, named PROPCOST and CROPCOST,
       #respectively.
       prop.multiplier <- c()
       for(i in 1:length(us.only$PROPDMG)){
