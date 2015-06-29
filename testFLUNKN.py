@@ -10,37 +10,31 @@ import argparse
 
 """
 Tests the FLUNKN bug fix in the parsePirep.pl PIREP decoder.
-Usage: testFLUNKN.py [options] testData
+Run the 'Master' parsePirep decoder and the test parsePirep decoder and compare the
+column containing the elevation/altitude information.  The values in this column
+should be different while the other columns remain identical.
 
-Options:
- -h, --help         show this help
- testData           The name of the input PIREP test data (to be decoded by the
-                    master decoder and the test decoder).
-
+Another test is to verify that the test parsePirep decoder is identical to the master
+parsePirep decoder when the icing flag is not used.
 """
 
 #************************************************************************************
 #Run tests on the output from parsePirep.pl to verify correct/expected behavior.
 #The following tests are run:
 
-#---Test 1 The /IC elevation is used instead of the /SK elevation information ---
+#---Test: The /IC elevation is used instead of the /SK elevation information ---
 #Test the changes to the parsePirep.pl decoder for FLUNKN with the SK group and
 #IC group. The new parsePirep.pl decoder uses the IC group's elevation information 
-#rather than the SK group's elevation information.  Run parsePirep.pl with the -i flag 
-#to indicate that we want the icing flag turned on, save it as test.csv and rerun the 
-#same data with the same parsePirep.pl without the -i flag.  Save this as master.csv 
-#and compare the test.csv to the master.csv.  The only column that should be different is 
-#column 6, the *altitude/flightLevel(100 ft MSL)* 
+#rather than the SK group's elevation information.  
+
+#PRECONDITION: Run parsePirep.pl with the -i flag 
+#to indicate that we want the icing flag turned on, save it as test.csv. Rerun the 
+#same data with the master parsePirep.pl and save this as master.csv 
+#Compare the test.csv to the master.csv.  The only column that should be different is 
+#column 6, the *altitude/flightLevel(100 ft MSL) 
 
 
-#---Test 2 The test parsePirep.pl (no icing flag) output is identical to the original/master ---
-#Run the parsePirep.pl without the icing flag, and the original parsePirep.pl on the same data
-#and verify that all rows and columns are identical.
 
-
-#The script is very rudimentary and meant to be run on the host where the 
-#icing data resides. This was meant to run in the /tmp directory to avoid any
-#collisions/interference with on-going data processing. 
 #************************************************************************************
 
 
@@ -107,29 +101,20 @@ def test(master_file, test_file):
           print "The updates to parsePirep.pl did not produce the anticipated changes, and/or resulted in unexpected changes\n"
 
 
+
 #-----------------main()---------------------------------
 
 def main():
     parser = argparse.ArgumentParser(description="Tests that the test version of the parsePirep decoder behaves as expected relative to the master parsePirep decoder")
-    parser.add_argument('-i','--input', help='full file name of the PIREP input file to be decoded',required=True) 
-    parser.add_argument('-m', '--master', help='Full file name of Master parsePirep decoder',required =True)
-    parser.add_argument('-t', '--test', help='Full file name of Test parsePirep decoder',required = True)
+    parser.add_argument('-m', '--master', help='Full file name of decoded PIREPs from the master decoder',required =True)
+    parser.add_argument('-t', '--test', help='Full file name of decoded PIREPs from the test decoder',required = True)
     args = parser.parse_args()
-    print ("input PIREP: %s " %args.input)
-    print ("Master decoder: %s " %args.master)
-    print ("Test decoder: %s " %args.test)
+    print ("Master decoder output file %s " %args.master)
+    print ("Test decoder output file: %s " %args.test)
     
-
-    #Test 1 using the FLUNKN.PIREP data, which have /FLUNKN, /SK, and /IC groups
-    #All columns should be identical except for the altitude/flightLevel(100 ft MSL) 
-    #column from the test.csv file.  This file will now use the altitude information from
-    #the /IC group.
+    test(args.master, args.test)
     
     
-    
-    #Test 2 using the FLUNKN.PIREP data, with /FLUNKN, /SK, and /IC groups.  This time,
-    #make sure the outpu from the test and master parsePirep.pl are identical if the 
-    #icing flag is omitted from the command line.
     
 #--------------------------------------------------------
 
